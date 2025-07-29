@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .conversion-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .input-group {
+            width: 120px;
+            margin-bottom: 10px;
+        }
+        .arrow {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 0 5px;
+            display: flex;
+            align-items: center;
+        }
+        input {
+            padding: 8px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        h1 {
+            margin-top: 0;
+            text-align: center;
+        }
+        p {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            text-align: center;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #333;
+            position: relative;
+            display: inline-block;
+        }
+        .section-header {
+            text-align: center;
+            position: relative;
+        }
+        .lock-icon {
+            cursor: pointer;
+            font-size: 18px;
+            margin-left: 10px;
+            vertical-align: middle;
+            color: #999;
+        }
+        .lock-icon.locked {
+            color: #f44336;
+        }
+        .lock-icon.unlocked {
+            color: #4CAF50;
+        }
+        .currency-switch {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin: 0 10px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .currency-label {
+            font-weight: bold;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 25px;
+        }
+        .cost-input {
+            position: relative;
+        }
+        .cost-input input {
+            padding-left: 20px;
+        }
+        .cost-input::before {
+            content: attr(data-currency-symbol);
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            color: #666;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 700px) {
+            .conversion-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .input-group {
+                width: 80%;
+                max-width: 250px;
+            }
+            .arrow {
+                transform: rotate(90deg);
+                margin: 5px 0;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            p {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Land Converter</h1>
+        <p>Convert between land measurements: Acres, Cents (100 cents = 1 acre), Square Feet (1 cent = 435.6 sqft), and Ground (1 cent = 0.1815 ground)</p>
+        
+        <div class="currency-switch">
+            <span class="currency-label">USD ($)</span>
+            <label class="switch">
+                <input type="checkbox" id="currencyToggle" onchange="toggleCurrency()">
+                <span class="slider"></span>
+            </label>
+            <span class="currency-label">INR (₹)</span>
+        </div>
+        
+        <div class="section-header">
+            <h2 class="section-title">Land Measurements</h2>
+            <span id="measurementsLock" class="lock-icon unlocked" onclick="toggleLock('measurements')" title="Click to lock/unlock this section">🔓</span>
+        </div>
+        <div class="conversion-container">
+            <div class="input-group">
+                <h3>Acres</h3>
+                <input type="number" id="acresInput" placeholder="Acres" step="0.01" oninput="convertFromAcres()">
+            </div>
+            
+            <div class="arrow">&harr;</div>
+            
+            <div class="input-group">
+                <h3>Cents</h3>
+                <input type="number" id="centsInput" placeholder="Cents" step="0.01" oninput="convertFromCents()">
+            </div>
+            
+            <div class="arrow">&harr;</div>
+            
+            <div class="input-group">
+                <h3>Square Feet</h3>
+                <input type="number" id="sqftInput" placeholder="SqFt" step="0.01" oninput="convertFromSqft()">
+            </div>
+            
+            <div class="arrow">&harr;</div>
+            
+            <div class="input-group">
+                <h3>Ground</h3>
+                <input type="number" id="groundInput" placeholder="Ground" step="0.01" oninput="convertFromGround()">
+            </div>
+        </div>
+        
+        <div class="section-header">
+            <h2 class="section-title">Land Cost</h2>
+            <span id="costLock" class="lock-icon unlocked" onclick="toggleLock('cost')" title="Click to lock/unlock this section">🔓</span>
+        </div>
+        <div class="conversion-container">
+            <div class="input-group">
+                <h3>Cost per Acre</h3>
+                <div class="cost-input" data-currency-symbol="$">
+                    <input type="number" id="costPerAcreInput" placeholder="Cost" step="0.01" oninput="convertCostFromAcre()">
+                </div>
+            </div>
+            
+            <div class="arrow">&harr;</div>
+            
+            <div class="input-group">
+                <h3>Cost per Cent</h3>
+                <div class="cost-input" data-currency-symbol="$">
+                    <input type="number" id="costPerCentInput" placeholder="Cost" step="0.01" oninput="convertCostFromCent()">
+                </div>
+            </div>
+            
+            <div class="arrow">&harr;</div>
+            
+            <div class="input-group">
+                <h3>Cost per SqFt</h3>
+                <div class="cost-input" data-currency-symbol="$">
+                    <input type="number" id="costPerSqftInput" placeholder="Cost" step="0.01" oninput="convertCostFromSqft()">
+                </div>
+            </div>
+            
+            <div class="arrow">&harr;</div>
+            
+            <div class="input-group">
+                <h3>Cost per Ground</h3>
+                <div class="cost-input" data-currency-symbol="$">
+                    <input type="number" id="costPerGroundInput" placeholder="Cost" step="0.01" oninput="convertCostFromGround()">
+                </div>
+            </div>
+        </div>
+        
+        <div class="section-header">
+            <h2 class="section-title">Market Value</h2>
+            <span id="marketValueLock" class="lock-icon unlocked" onclick="toggleLock('marketValue')" title="Click to lock/unlock this section">🔓</span>
+        </div>
+        <div class="market-value-container" style="text-align: center; margin: 20px 0;">
+            <div class="input-group" style="width: 200px; margin: 0 auto;">
+                <h3>Total Market Value</h3>
+                <div class="cost-input" data-currency-symbol="$">
+                    <input type="number" id="marketValueInput" placeholder="Enter value" step="0.01" oninput="updateCostsFromMarketValue()">
+                </div>
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button onclick="generateRandomValue()">Random Value</button>
+            <button onclick="calculateMarketValue()" style="margin-left: 10px; background-color: #2196F3;">Calculate Market Value</button>
+        </div>
+    </div>
+
+    <script>
+        // Conversion functions
+        function acresToCents(acres) {
+            if (typeof acres !== 'number' || isNaN(acres)) {
+                throw new TypeError('Input must be a valid number');
+            }
+            
+            if (acres < 0) {
+                throw new Error('Input must be a non-negative number');
+            }
+            
+            return acres * 100;
+        }
+
+        function centsToAcres(cents) {
+            if (typeof cents !== 'number' || isNaN(cents)) {
+                throw new TypeError('Input must be a valid number');
+            }
+            
+            if (cents < 0) {
+                throw new Error('Input must be a non-negative number');
+            }
+            
+            return cents / 100;
+        }
+        
+        function centsToSqft(cents) {
+            if (typeof cents !== 'number' || isNaN(cents)) {
+                throw new TypeError('Input must be a valid number');
+            }
+            
+            if (cents < 0) {
+                throw new Error('Input must be a non-negative number');
+            }
+            
+            return cents * 435.6;
+        }
+        
+        function sqftToCents(sqft) {
+            if (typeof sqft !== 'number' || isNaN(sqft)) {
+                throw new TypeError('Input must be a valid number');
+            }
+            
+            if (sqft < 0) {
+                throw new Error('Input must be a non-negative number');
+            }
+            
+            return sqft / 435.6;
+        }
+        
+        function centsToGround(cents) {
+            if (typeof cents !== 'number' || isNaN(cents)) {
+                throw new TypeError('Input must be a valid number');
+            }
+            
+            if (cents < 0) {
+                throw new Error('Input must be a non-negative number');
+            }
+            
+            return cents * 0.1815;
+        }
+        
+        function groundToCents(ground) {
+            if (typeof ground !== 'number' || isNaN(ground)) {
+                throw new TypeError('Input must be a valid number');
+            }
+            
+            if (ground < 0) {
+                throw new Error('Input must be a non-negative number');
+            }
+            
+            return ground / 0.1815;
+        }
+        
+        function acresToSqft(acres) {
+            return centsToSqft(acresToCents(acres));
+        }
+        
+        function sqftToAcres(sqft) {
+            return centsToAcres(sqftToCents(sqft));
+        }
+        
+        function acresToGround(acres) {
+            return centsToGround(acresToCents(acres));
+        }
+        
+        function groundToAcres(ground) {
+            return centsToAcres(groundToCents(ground));
+        }
+        
+        function sqftToGround(sqft) {
+            return centsToGround(sqftToCents(sqft));
+        }
+        
+        function groundToSqft(ground) {
+            return centsToSqft(groundToCents(ground));
+        }
+
+        // UI functions
+        function convertFromAcres() {
+            try {
+                // Don't update if measurements section is locked
+                if (isSectionLocked('measurements')) {
+                    return;
+                }
+                
+                const acresInput = document.getElementById('acresInput').value;
+                if (acresInput === '') {
+                    document.getElementById('centsInput').value = '';
+                    document.getElementById('sqftInput').value = '';
+                    document.getElementById('groundInput').value = '';
+                    return;
+                }
+                
+                const acres = parseFloat(acresInput);
+                const cents = acresToCents(acres);
+                const sqft = acresToSqft(acres);
+                const ground = acresToGround(acres);
+                
+                document.getElementById('centsInput').value = cents;
+                document.getElementById('sqftInput').value = sqft.toFixed(2);
+                document.getElementById('groundInput').value = ground.toFixed(4);
+                
+                // If market value is locked but costs aren't, update costs based on market value
+                if (isSectionLocked('marketValue') && !isSectionLocked('cost')) {
+                    updateCostsFromLockedMarketValue();
+                }
+                // Otherwise, update market value if it's not locked
+                else if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function convertFromCents() {
+            try {
+                // Don't update if measurements section is locked
+                if (isSectionLocked('measurements')) {
+                    return;
+                }
+                
+                const centsInput = document.getElementById('centsInput').value;
+                if (centsInput === '') {
+                    document.getElementById('acresInput').value = '';
+                    document.getElementById('sqftInput').value = '';
+                    document.getElementById('groundInput').value = '';
+                    return;
+                }
+                
+                const cents = parseFloat(centsInput);
+                const acres = centsToAcres(cents);
+                const sqft = centsToSqft(cents);
+                const ground = centsToGround(cents);
+                
+                document.getElementById('acresInput').value = acres;
+                document.getElementById('sqftInput').value = sqft.toFixed(2);
+                document.getElementById('groundInput').value = ground.toFixed(4);
+                
+                // If market value is locked but costs aren't, update costs based on market value
+                if (isSectionLocked('marketValue') && !isSectionLocked('cost')) {
+                    updateCostsFromLockedMarketValue();
+                }
+                // Otherwise, update market value if it's not locked
+                else if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        function convertFromSqft() {
+            try {
+                // Don't update if measurements section is locked
+                if (isSectionLocked('measurements')) {
+                    return;
+                }
+                
+                const sqftInput = document.getElementById('sqftInput').value;
+                if (sqftInput === '') {
+                    document.getElementById('acresInput').value = '';
+                    document.getElementById('centsInput').value = '';
+                    document.getElementById('groundInput').value = '';
+                    return;
+                }
+                
+                const sqft = parseFloat(sqftInput);
+                const cents = sqftToCents(sqft);
+                const acres = sqftToAcres(sqft);
+                const ground = sqftToGround(sqft);
+                
+                document.getElementById('acresInput').value = acres.toFixed(6);
+                document.getElementById('centsInput').value = cents.toFixed(4);
+                document.getElementById('groundInput').value = ground.toFixed(4);
+                
+                // If market value is locked but costs aren't, update costs based on market value
+                if (isSectionLocked('marketValue') && !isSectionLocked('cost')) {
+                    updateCostsFromLockedMarketValue();
+                }
+                // Otherwise, update market value if it's not locked
+                else if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        function convertFromGround() {
+            try {
+                // Don't update if measurements section is locked
+                if (isSectionLocked('measurements')) {
+                    return;
+                }
+                
+                const groundInput = document.getElementById('groundInput').value;
+                if (groundInput === '') {
+                    document.getElementById('acresInput').value = '';
+                    document.getElementById('centsInput').value = '';
+                    document.getElementById('sqftInput').value = '';
+                    return;
+                }
+                
+                const ground = parseFloat(groundInput);
+                const cents = groundToCents(ground);
+                const acres = groundToAcres(ground);
+                const sqft = groundToSqft(ground);
+                
+                document.getElementById('acresInput').value = acres.toFixed(6);
+                document.getElementById('centsInput').value = cents.toFixed(4);
+                document.getElementById('sqftInput').value = sqft.toFixed(2);
+                
+                // If market value is locked but costs aren't, update costs based on market value
+                if (isSectionLocked('marketValue') && !isSectionLocked('cost')) {
+                    updateCostsFromLockedMarketValue();
+                }
+                // Otherwise, update market value if it's not locked
+                else if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        // Lock status for each section
+        let lockStatus = {
+            measurements: false,
+            cost: false,
+            marketValue: false
+        };
+        
+        // Toggle lock for a section
+        function toggleLock(section) {
+            lockStatus[section] = !lockStatus[section];
+            const lockIcon = document.getElementById(section + 'Lock');
+            
+            if (lockStatus[section]) {
+                lockIcon.textContent = '🔒';
+                lockIcon.classList.remove('unlocked');
+                lockIcon.classList.add('locked');
+                lockIcon.title = 'Section locked - will not be updated';
+            } else {
+                lockIcon.textContent = '🔓';
+                lockIcon.classList.remove('locked');
+                lockIcon.classList.add('unlocked');
+                lockIcon.title = 'Section unlocked - can be updated';
+            }
+        }
+        
+        // Check if a section is locked
+        function isSectionLocked(section) {
+            return lockStatus[section];
+        }
+        
+        // Current currency settings
+        let currencySettings = {
+            code: 'USD',
+            symbol: '$',
+            exchangeRate: 1, // 1 USD = 1 USD (base)
+            locale: 'en-US'
+        };
+        
+        // Toggle between USD and INR
+        function toggleCurrency() {
+            const isINR = document.getElementById('currencyToggle').checked;
+            
+            if (isINR) {
+                // Switch to INR
+                currencySettings = {
+                    code: 'INR',
+                    symbol: '₹',
+                    exchangeRate: 83.12, // 1 USD = 83.12 INR (approximate)
+                    locale: 'en-IN'
+                };
+            } else {
+                // Switch to USD
+                currencySettings = {
+                    code: 'USD',
+                    symbol: '$',
+                    exchangeRate: 1,
+                    locale: 'en-US'
+                };
+            }
+            
+            // Update all currency symbols
+            const costInputs = document.querySelectorAll('.cost-input');
+            costInputs.forEach(input => {
+                input.setAttribute('data-currency-symbol', currencySettings.symbol);
+            });
+            
+            // Update all displayed values
+            updateAllCurrencyValues();
+        }
+        
+        // Update all displayed values when currency changes
+        function updateAllCurrencyValues() {
+            // Get current values
+            const costPerAcre = parseFloat(document.getElementById('costPerAcreInput').value) || 0;
+            const costPerCent = parseFloat(document.getElementById('costPerCentInput').value) || 0;
+            const costPerSqft = parseFloat(document.getElementById('costPerSqftInput').value) || 0;
+            const costPerGround = parseFloat(document.getElementById('costPerGroundInput').value) || 0;
+            const marketValue = parseFloat(document.getElementById('marketValueInput').value) || 0;
+            
+            // If we're switching to INR, multiply by exchange rate
+            // If we're switching to USD, values are already in USD
+            if (currencySettings.code === 'INR') {
+                document.getElementById('costPerAcreInput').value = (costPerAcre * currencySettings.exchangeRate).toFixed(2);
+                document.getElementById('costPerCentInput').value = (costPerCent * currencySettings.exchangeRate).toFixed(2);
+                document.getElementById('costPerSqftInput').value = (costPerSqft * currencySettings.exchangeRate).toFixed(2);
+                document.getElementById('costPerGroundInput').value = (costPerGround * currencySettings.exchangeRate).toFixed(2);
+                document.getElementById('marketValueInput').value = (marketValue * currencySettings.exchangeRate).toFixed(2);
+            } else {
+                // We're switching to USD, divide by the previous exchange rate (83.12)
+                document.getElementById('costPerAcreInput').value = (costPerAcre / 83.12).toFixed(2);
+                document.getElementById('costPerCentInput').value = (costPerCent / 83.12).toFixed(2);
+                document.getElementById('costPerSqftInput').value = (costPerSqft / 83.12).toFixed(2);
+                document.getElementById('costPerGroundInput').value = (costPerGround / 83.12).toFixed(2);
+                document.getElementById('marketValueInput').value = (marketValue / 83.12).toFixed(2);
+            }
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set focus to the first input field
+            document.getElementById('acresInput').focus();
+            
+            // Clear market value field initially
+            document.getElementById('marketValueInput').value = '';
+            
+            // Initialize currency symbols
+            const costInputs = document.querySelectorAll('.cost-input');
+            costInputs.forEach(input => {
+                input.setAttribute('data-currency-symbol', currencySettings.symbol);
+            });
+        });
+        
+        // Generate random value between 25 and 130 for cents
+        function generateRandomValue() {
+            const min = 25;
+            const max = 130;
+            const randomCents = Math.floor(Math.random() * (max - min + 1)) + min;
+            
+            document.getElementById('centsInput').value = randomCents;
+            convertFromCents();
+        }
+        
+        // Update market value when measurements or costs change
+        function updateMarketValue() {
+            calculateMarketValue();
+        }
+        
+        // Calculate market value based on current measurements and costs
+        function calculateMarketValue() {
+            try {
+                // Don't update if market value section is locked
+                if (isSectionLocked('marketValue')) {
+                    return;
+                }
+                
+                // Get current measurements
+                const acres = parseFloat(document.getElementById('acresInput').value) || 0;
+                
+                // Get current costs per unit
+                const costPerAcre = parseFloat(document.getElementById('costPerAcreInput').value) || 0;
+                
+                // Calculate market value (using acres as the reference)
+                const marketValue = acres * costPerAcre;
+                
+                // Update the market value input
+                document.getElementById('marketValueInput').value = marketValue.toFixed(2);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        // Update costs based on a locked market value and current measurements
+        function updateCostsFromLockedMarketValue() {
+            try {
+                // Don't update if cost section is locked
+                if (isSectionLocked('cost')) {
+                    return;
+                }
+                
+                const marketValue = parseFloat(document.getElementById('marketValueInput').value) || 0;
+                
+                // Get current measurements
+                const acres = parseFloat(document.getElementById('acresInput').value) || 0;
+                const cents = parseFloat(document.getElementById('centsInput').value) || 0;
+                const sqft = parseFloat(document.getElementById('sqftInput').value) || 0;
+                const ground = parseFloat(document.getElementById('groundInput').value) || 0;
+                
+                // Calculate new costs per unit based on market value and current measurements
+                if (acres > 0) {
+                    const newCostPerAcre = marketValue / acres;
+                    document.getElementById('costPerAcreInput').value = newCostPerAcre.toFixed(2);
+                    
+                    // Update other cost fields without triggering market value update
+                    const costPerCent = newCostPerAcre / 100;
+                    const costPerSqft = costPerCent / 435.6;
+                    const costPerGround = costPerCent / 0.1815;
+                    
+                    document.getElementById('costPerCentInput').value = costPerCent.toFixed(2);
+                    document.getElementById('costPerSqftInput').value = costPerSqft.toFixed(2);
+                    document.getElementById('costPerGroundInput').value = costPerGround.toFixed(2);
+                } else if (cents > 0) {
+                    const newCostPerCent = marketValue / cents;
+                    document.getElementById('costPerCentInput').value = newCostPerCent.toFixed(2);
+                    
+                    // Update other cost fields without triggering market value update
+                    const costPerAcre = newCostPerCent * 100;
+                    const costPerSqft = newCostPerCent / 435.6;
+                    const costPerGround = newCostPerCent / 0.1815;
+                    
+                    document.getElementById('costPerAcreInput').value = costPerAcre.toFixed(2);
+                    document.getElementById('costPerSqftInput').value = costPerSqft.toFixed(2);
+                    document.getElementById('costPerGroundInput').value = costPerGround.toFixed(2);
+                } else if (sqft > 0) {
+                    const newCostPerSqft = marketValue / sqft;
+                    document.getElementById('costPerSqftInput').value = newCostPerSqft.toFixed(2);
+                    
+                    // Update other cost fields without triggering market value update
+                    const costPerCent = newCostPerSqft * 435.6;
+                    const costPerAcre = costPerCent * 100;
+                    const costPerGround = costPerCent / 0.1815;
+                    
+                    document.getElementById('costPerAcreInput').value = costPerAcre.toFixed(2);
+                    document.getElementById('costPerCentInput').value = costPerCent.toFixed(2);
+                    document.getElementById('costPerGroundInput').value = costPerGround.toFixed(2);
+                } else if (ground > 0) {
+                    const newCostPerGround = marketValue / ground;
+                    document.getElementById('costPerGroundInput').value = newCostPerGround.toFixed(2);
+                    
+                    // Update other cost fields without triggering market value update
+                    const costPerCent = newCostPerGround * 0.1815;
+                    const costPerAcre = costPerCent * 100;
+                    const costPerSqft = costPerCent / 435.6;
+                    
+                    document.getElementById('costPerAcreInput').value = costPerAcre.toFixed(2);
+                    document.getElementById('costPerCentInput').value = costPerCent.toFixed(2);
+                    document.getElementById('costPerSqftInput').value = costPerSqft.toFixed(2);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        // Update costs when market value changes
+        function updateCostsFromMarketValue() {
+            try {
+                // Don't update if market value section is locked
+                if (isSectionLocked('marketValue')) {
+                    return;
+                }
+                
+                const marketValue = parseFloat(document.getElementById('marketValueInput').value);
+                if (isNaN(marketValue)) {
+                    return;
+                }
+                
+                // Don't update costs if cost section is locked
+                if (isSectionLocked('cost')) {
+                    return;
+                }
+                
+                // Get current measurements
+                const acres = parseFloat(document.getElementById('acresInput').value) || 0;
+                const cents = parseFloat(document.getElementById('centsInput').value) || 0;
+                const sqft = parseFloat(document.getElementById('sqftInput').value) || 0;
+                const ground = parseFloat(document.getElementById('groundInput').value) || 0;
+                
+                // Calculate new costs per unit based on market value
+                if (acres > 0) {
+                    const newCostPerAcre = marketValue / acres;
+                    document.getElementById('costPerAcreInput').value = newCostPerAcre.toFixed(2);
+                    // Use a special flag to prevent infinite loops
+                    const originalLockStatus = lockStatus.cost;
+                    lockStatus.cost = false; // Temporarily unlock
+                    convertCostFromAcre();
+                    lockStatus.cost = originalLockStatus; // Restore lock status
+                } else if (cents > 0) {
+                    const newCostPerCent = marketValue / cents;
+                    document.getElementById('costPerCentInput').value = newCostPerCent.toFixed(2);
+                    // Use a special flag to prevent infinite loops
+                    const originalLockStatus = lockStatus.cost;
+                    lockStatus.cost = false; // Temporarily unlock
+                    convertCostFromCent();
+                    lockStatus.cost = originalLockStatus; // Restore lock status
+                } else if (sqft > 0) {
+                    const newCostPerSqft = marketValue / sqft;
+                    document.getElementById('costPerSqftInput').value = newCostPerSqft.toFixed(2);
+                    // Use a special flag to prevent infinite loops
+                    const originalLockStatus = lockStatus.cost;
+                    lockStatus.cost = false; // Temporarily unlock
+                    convertCostFromSqft();
+                    lockStatus.cost = originalLockStatus; // Restore lock status
+                } else if (ground > 0) {
+                    const newCostPerGround = marketValue / ground;
+                    document.getElementById('costPerGroundInput').value = newCostPerGround.toFixed(2);
+                    // Use a special flag to prevent infinite loops
+                    const originalLockStatus = lockStatus.cost;
+                    lockStatus.cost = false; // Temporarily unlock
+                    convertCostFromGround();
+                    lockStatus.cost = originalLockStatus; // Restore lock status
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        // Format number as currency
+        function formatCurrency(number) {
+            if (number === 0 || isNaN(number)) return '';
+            return number.toLocaleString(currencySettings.locale, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+        
+        // Cost conversion functions
+        function convertCostFromAcre() {
+            try {
+                // Don't update if cost section is locked
+                if (isSectionLocked('cost')) {
+                    return;
+                }
+                
+                const costPerAcreInput = document.getElementById('costPerAcreInput').value;
+                if (costPerAcreInput === '') {
+                    document.getElementById('costPerCentInput').value = '';
+                    document.getElementById('costPerSqftInput').value = '';
+                    document.getElementById('costPerGroundInput').value = '';
+                    return;
+                }
+                
+                const costPerAcre = parseFloat(costPerAcreInput);
+                const costPerCent = costPerAcre / 100; // 100 cents = 1 acre
+                const costPerSqft = costPerCent / 435.6; // 1 cent = 435.6 sqft
+                const costPerGround = costPerCent / 0.1815; // 1 cent = 0.1815 ground
+                
+                document.getElementById('costPerCentInput').value = costPerCent.toFixed(2);
+                document.getElementById('costPerSqftInput').value = costPerSqft.toFixed(2);
+                document.getElementById('costPerGroundInput').value = costPerGround.toFixed(2);
+                
+                // Update market value when costs change if not locked
+                if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        function convertCostFromCent() {
+            try {
+                // Don't update if cost section is locked
+                if (isSectionLocked('cost')) {
+                    return;
+                }
+                
+                const costPerCentInput = document.getElementById('costPerCentInput').value;
+                if (costPerCentInput === '') {
+                    document.getElementById('costPerAcreInput').value = '';
+                    document.getElementById('costPerSqftInput').value = '';
+                    document.getElementById('costPerGroundInput').value = '';
+                    return;
+                }
+                
+                const costPerCent = parseFloat(costPerCentInput);
+                const costPerAcre = costPerCent * 100; // 100 cents = 1 acre
+                const costPerSqft = costPerCent / 435.6; // 1 cent = 435.6 sqft
+                const costPerGround = costPerCent / 0.1815; // 1 cent = 0.1815 ground
+                
+                document.getElementById('costPerAcreInput').value = costPerAcre.toFixed(2);
+                document.getElementById('costPerSqftInput').value = costPerSqft.toFixed(2);
+                document.getElementById('costPerGroundInput').value = costPerGround.toFixed(2);
+                
+                // Update market value when costs change if not locked
+                if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        function convertCostFromSqft() {
+            try {
+                // Don't update if cost section is locked
+                if (isSectionLocked('cost')) {
+                    return;
+                }
+                
+                const costPerSqftInput = document.getElementById('costPerSqftInput').value;
+                if (costPerSqftInput === '') {
+                    document.getElementById('costPerAcreInput').value = '';
+                    document.getElementById('costPerCentInput').value = '';
+                    document.getElementById('costPerGroundInput').value = '';
+                    return;
+                }
+                
+                const costPerSqft = parseFloat(costPerSqftInput);
+                const costPerCent = costPerSqft * 435.6; // 1 cent = 435.6 sqft
+                const costPerAcre = costPerCent * 100; // 100 cents = 1 acre
+                const costPerGround = costPerCent / 0.1815; // 1 cent = 0.1815 ground
+                
+                document.getElementById('costPerAcreInput').value = costPerAcre.toFixed(2);
+                document.getElementById('costPerCentInput').value = costPerCent.toFixed(2);
+                document.getElementById('costPerGroundInput').value = costPerGround.toFixed(2);
+                
+                // Update market value when costs change if not locked
+                if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        
+        function convertCostFromGround() {
+            try {
+                // Don't update if cost section is locked
+                if (isSectionLocked('cost')) {
+                    return;
+                }
+                
+                const costPerGroundInput = document.getElementById('costPerGroundInput').value;
+                if (costPerGroundInput === '') {
+                    document.getElementById('costPerAcreInput').value = '';
+                    document.getElementById('costPerCentInput').value = '';
+                    document.getElementById('costPerSqftInput').value = '';
+                    return;
+                }
+                
+                const costPerGround = parseFloat(costPerGroundInput);
+                const costPerCent = costPerGround * 0.1815; // 1 cent = 0.1815 ground
+                const costPerAcre = costPerCent * 100; // 100 cents = 1 acre
+                const costPerSqft = costPerCent / 435.6; // 1 cent = 435.6 sqft
+                
+                document.getElementById('costPerAcreInput').value = costPerAcre.toFixed(2);
+                document.getElementById('costPerCentInput').value = costPerCent.toFixed(2);
+                document.getElementById('costPerSqftInput').value = costPerSqft.toFixed(2);
+                
+                // Update market value when costs change if not locked
+                if (!isSectionLocked('marketValue')) {
+                    updateMarketValue();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
